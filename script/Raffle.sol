@@ -38,7 +38,12 @@ contract Raffle {
         i_entranceFee = entranceFee;
     }
 
-    function enterRaffle() public payable {}
+    function enterRaffle() public payable {
+        require(
+            msg.value >= i_entranceFee,
+            "Not enough ETH to enter the raffle"
+        );
+    }
 
     function pickWinner() public {}
 
