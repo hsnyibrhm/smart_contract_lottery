@@ -32,6 +32,9 @@ pragma solidity 0.8.19;
  */
 
 contract Raffle {
+    /* custome error */
+    error NOtEnoughETHToEnterRaffle();
+
     uint256 private immutable i_entranceFee;
 
     constructor(uint256 entranceFee) {
@@ -39,10 +42,15 @@ contract Raffle {
     }
 
     function enterRaffle() public payable {
-        require(
-            msg.value >= i_entranceFee,
-            "Not enough ETH to enter the raffle"
-        );
+        // require(msg.value >= i_entranceFee,"Not enough ETH to enter the raffle");
+
+        /* ini adalah cara yang lebih irit gas dengan require + custome error tapi hanya di vesi 0.8.26 keatas.
+        require(msg.value >= i_entranceFee, NOtEnoughETHToEnterRaffle());
+        */
+
+        if (msg.value < i_entranceFee) {
+            revert NOtEnoughETHToEnterRaffle();
+        }
     }
 
     function pickWinner() public {}
