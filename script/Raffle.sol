@@ -37,15 +37,22 @@ contract Raffle {
 
     uint256 private immutable i_entranceFee;
     address payable[] private s_players;
+    /**
+     * @dev durasi lottery dalam detik, misalnya 1 hari = 86400 detik
+     */
+    uint256 private immutable i_interval;
+    uint256 private s_lastTimeStamp;
 
     /* Events */
     event PlayerEntered(address indexed player);
 
-    constructor(uint256 entranceFee) {
+    constructor(uint256 entranceFee, uint256 interval) {
         i_entranceFee = entranceFee;
+        i_interval = interval;
+        s_lastTimeStamp = block.timestamp;
     }
 
-    function enterRaffle() public payable {
+    function enterRaffle() external payable {
         // require(msg.value >= i_entranceFee,"Not enough ETH to enter the raffle");
 
         /* ini adalah cara yang lebih irit gas dengan require + custome error tapi hanya di vesi 0.8.26 keatas.
@@ -59,8 +66,14 @@ contract Raffle {
         emit PlayerEntered(msg.sender);
     }
 
-    function pickWinner() public {}
+    function pickWinner() external view {
+        if (block.timestamp - s_lastTimeStamp > i_interval) {
+            // get current block timestamp
+            revert();
+        }
+    }
 
+    /* Getter functions */
     function getEntranceFee() external view returns (uint256) {
         return i_entranceFee;
     }
