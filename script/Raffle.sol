@@ -37,6 +37,7 @@ import {VRFV2PlusClient} from "@chainlink/contracts/src/v0.8/vrf/dev/libraries/V
 contract Raffle is VRFConsumerBaseV2Plus {
     /* custome error */
     error NOtEnoughETHToEnterRaffle();
+    error TransferFailed();
 
     uint16 private constant REQUEST_CONFIRMATION = 3;
     uint32 private constant NUMWORDS = 1;
@@ -49,6 +50,7 @@ contract Raffle is VRFConsumerBaseV2Plus {
     uint64 private immutable i_subscriptionId;
     bytes32 private immutable i_keyHash;
     uint256 private s_lastTimeStamp;
+    address private s_recentWinner;
     address payable[] private s_players;
 
     /* Events */
@@ -105,7 +107,17 @@ contract Raffle is VRFConsumerBaseV2Plus {
         uint256 requestId = s_vrfCoordinator.requestRandomWords(request);
     }
 
-    function fulfillRandomWords(uint256 requestId, uint256[] calldata randomWords) internal override {}
+    function fulfillRandomWords(uint256 requestId, uint256[] calldata randomWords) internal override {
+        //s_players akan 10 orang
+        uint256 indexOfWinner = randomWords[0] % s_players.length;
+        address payable recentWinner = s_players[indexOfWinner];
+        // reset state
+        s_recentWinner = recentWinner;
+        (bool success,) = recentWinner.call{value: address(this).balance}("");
+        if (!success) {
+            revert TransferFailed();
+        }
+    }
 
     /* Getter functions */
     function getEntranceFee() external view returns (uint256) {
