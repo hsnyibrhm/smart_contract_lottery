@@ -64,6 +64,7 @@ contract Raffle is VRFConsumerBaseV2Plus {
 
     /* Events */
     event PlayerEntered(address indexed player);
+    event WinnerPicked(address indexed winner);
 
     constructor(
         uint256 entranceFee,
@@ -83,6 +84,8 @@ contract Raffle is VRFConsumerBaseV2Plus {
         s_raffleState = RaffleState.OPEN;
     }
 
+    /* functions */
+
     function enterRaffle() external payable {
         // require(msg.value >= i_entranceFee,"Not enough ETH to enter the raffle");
 
@@ -101,10 +104,32 @@ contract Raffle is VRFConsumerBaseV2Plus {
         emit PlayerEntered(msg.sender);
     }
 
-    function pickWinner() external {
-        if (block.timestamp - s_lastTimeStamp > i_interval) {
-            // get current block timestamp
-            revert();
+    /**
+    @dev fungsi ini akan dipanggil oleh Chainlink Keeper untuk memeriksa apakah kondisi untuk memulai proses pemilihan pemenang sudah terpenuhi, 
+    yaitu apakah interval waktu sudah terpenuhi dan apakah ada pemain yang masuk ke dalam raffle. 
+    Jika kondisi terpenuhi, maka fungsi ini akan mengembalikan nilai true untuk upkeepNeeded, 
+    yang akan memicu pemanggilan fungsi pickWinner oleh Chainlink Keeper.
+    @param - ignored
+    @return upkeepNeeded - boolean yang menunjukkan apakah kondisi untuk memulai proses pemilihan pemenang sudah terpenuhi
+    @return - bytes memory yang tidak digunakan dalam fungsi ini, tetapi diperlukan untuk memenuhi signature dari
+    */
+    function checkUpkeep(
+        bytes memory /* checkData */
+    ) public view returns (bool upkeepNeeded, bytes memory) {
+        bool timePassed = (block.timestamp - s_lastTimeStamp) >= i_interval;
+        bool isOpen = s_raffleState == RaffleState.OPEN;
+        bool hasbalance = address(this).balance > 0;
+        bool hasPlayers = s_players.length > 0;
+
+        upkeepNeeded = isOpen && timePassed && hasPlayers && hasbalance;
+        return (upkeepNeeded, bytes(""));
+    }
+
+    /*otomatis akan dipanggil oleh Chainlink Keeper setelah interval waktu terpenuhi, untuk memulai proses pemilihan pemenang*/
+    function performUpkeep(bytes calldata /* performData */) external {
+        (bool upkeepNeeded, ) = checkUpkeep("");
+        if (!upkeepNeeded) {
+            revert("Upkeep not needed");
         }
         s_raffleState = RaffleState.CALCULATING;
 
@@ -128,12 +153,18 @@ contract Raffle is VRFConsumerBaseV2Plus {
         uint256 requestId,
         uint256[] calldata randomWords
     ) internal override {
-        //s_players akan 10 orang
+        //efek internal contract state, jadi tidak perlu validasi requestId karena hanya bisa dipanggil oleh VRF Coordinator
         uint256 indexOfWinner = randomWords[0] % s_players.length;
         address payable recentWinner = s_players[indexOfWinner];
-        // reset state
         s_recentWinner = recentWinner;
+
+        /*reset array dan state untuk memulai raffle baru*/
         s_raffleState = RaffleState.OPEN;
+        s_players = new address payable[](0);
+        s_lastTimeStamp = block.timestamp;
+        emit WinnerPicked(s_recentWinner);
+
+        /*unteraksu (eksternal contract state)*/
         (bool success, ) = recentWinner.call{value: address(this).balance}("");
         if (!success) {
             revert TransferFailed();
