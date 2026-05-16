@@ -32,3 +32,13 @@ Proyek ini bertujuan untuk membangun sistem undian (lottery) yang sepenuhnya ter
 1. Build proyek:
    ```bash
    forge build
+   ```
+
+## Tests!
+
+1. Write deploy Scripts
+   1. Note, these will not work on zkSync
+2. write test 
+   1. Local Chain
+   2. Forked Tesnet
+   3. Forked Mainnet

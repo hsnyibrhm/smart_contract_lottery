@@ -39,6 +39,11 @@ contract Raffle is VRFConsumerBaseV2Plus {
     error NOtEnoughETHToEnterRaffle();
     error TransferFailed();
     error RaffleNotOpen();
+    error Raffle_UpkeepNotNeeded(
+        uint256 balance,
+        uint256 playerslength,
+        uint256 raffleState
+    );
 
     /* Type declarations */
     enum RaffleState {
@@ -129,7 +134,11 @@ contract Raffle is VRFConsumerBaseV2Plus {
     function performUpkeep(bytes calldata /* performData */) external {
         (bool upkeepNeeded, ) = checkUpkeep("");
         if (!upkeepNeeded) {
-            revert("Upkeep not needed");
+            revert Raffle_UpkeepNotNeeded(
+                address(this).balance,
+                s_players.length,
+                uint256(s_raffleState)
+            );
         }
         s_raffleState = RaffleState.CALCULATING;
 
@@ -146,11 +155,11 @@ contract Raffle is VRFConsumerBaseV2Plus {
                 )
             });
 
-        uint256 requestId = s_vrfCoordinator.requestRandomWords(request);
+        s_vrfCoordinator.requestRandomWords(request);
     }
 
     function fulfillRandomWords(
-        uint256 requestId,
+        uint256 /*requestId*/,
         uint256[] calldata randomWords
     ) internal override {
         //efek internal contract state, jadi tidak perlu validasi requestId karena hanya bisa dipanggil oleh VRF Coordinator
