@@ -2,8 +2,15 @@
 pragma solidity 0.8.19;
 
 import {Script} from "forge-std/Script.sol";
+import {VRFCoordinatorV2Mock} from "@chainlink/contracts/src/v0.8/vrf/mocks/VRFCoordinatorV2Mock.sol";
 
 abstract contract CodeConstants {
+    /* VRF Mock values */
+    uint96 public constant MOCK_BASE_FEE = 0.25 ether;
+    uint96 public constant MOCK_GAS_PRICE_LINK = 1e9; // 0.000
+    //LINK / ETH Price
+    int256 public constant MOCK_WEI_PER_UNIT_LINK = 4e15;
+
     uint256 public constant SEPOLIA_CHAINID = 11155111;
     uint256 public constant LOCAL_CHAINID = 31337;
 }
@@ -43,9 +50,9 @@ contract HelperConfig is CodeConstants, Script {
         if (networkConfigs[block.chainid].vrfCoordinator != address(0)) {
             return networkConfigs[block.chainid];
         } else if (chainid == LOCAL_CHAINID) {
-            //getOrCreateAnvilConfig();
+            return getOrCreateAnvilEthConfig();
         } else {
-            revert("Network config not found for the current chain id");
+            revert HelperConfig__InvalidChainId();
         }
     }
 
@@ -70,5 +77,25 @@ contract HelperConfig is CodeConstants, Script {
         if (localNetworkConfig.vrfCoordinator != address(0)) {
             return localNetworkConfig;
         }
+
+        vm.broadcast();
+        VRFCoordinatorV2Mock vrfCoordinatorV2Mock = new VRFCoordinatorV2Mock(
+            MOCK_BASE_FEE,
+            MOCK_GAS_PRICE_LINK
+        );
+        vm.stopBroadcast();
+
+        localNetworkConfig = NetworkConfig({
+            entranceFee: 0.01 ether,
+            interval: 30,
+            gasLane: bytes32(
+                0x1770bdc7eec7771f7ba4ffd640f34260d7f095b79c92d34a5b2551d6f6cfd2be
+            ), // TODO: update with actual gas lane
+            vrfCoordinator: address(vrfCoordinatorV2Mock), // TODO: update with actual VRF coordinator address
+            callbackGasLimit: 200000,
+            subscriptionId: 0 // TODO: update with actual subscription id
+        });
+
+        return localNetworkConfig;
     }
 }
