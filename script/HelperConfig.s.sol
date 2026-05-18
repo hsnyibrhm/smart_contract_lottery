@@ -47,8 +47,9 @@ contract HelperConfig is CodeConstants, Script {
     function getConfigByChainId(
         uint256 chainid
     ) public returns (NetworkConfig memory) {
-        if (networkConfigs[block.chainid].vrfCoordinator != address(0)) {
-            return networkConfigs[block.chainid];
+        if (networkConfigs[chainid].vrfCoordinator != address(0)) {
+            NetworkConfig memory config = networkConfigs[chainid];
+            return config;
         } else if (chainid == LOCAL_CHAINID) {
             return getOrCreateAnvilEthConfig();
         } else {
@@ -57,7 +58,7 @@ contract HelperConfig is CodeConstants, Script {
     }
 
     function getConfig() public returns (NetworkConfig memory) {
-        return networkConfigs[block.chainid];
+        return getConfigByChainId(block.chainid);
     }
 
     function getSepoliaEthConfig() public returns (NetworkConfig memory) {
@@ -82,7 +83,7 @@ contract HelperConfig is CodeConstants, Script {
             return localNetworkConfig;
         }
 
-        vm.broadcast();
+        vm.startBroadcast();
         VRFCoordinatorV2Mock vrfCoordinatorV2Mock = new VRFCoordinatorV2Mock(
             MOCK_BASE_FEE,
             MOCK_GAS_PRICE_LINK
