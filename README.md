@@ -29,6 +29,31 @@ Proyek ini bertujuan untuk membangun sistem undian (lottery) yang sepenuhnya ter
 - `test/`: Folder pengujian (akan segera diisi).
 - `script/`: Script untuk deployment.
 
+## Layout Of Contract
+
+1. license
+2. version
+3. imports
+4. errors
+5. interfaces, libraries, contracts
+6. Type declarations
+7. State variables
+8. Events
+9. Modifiers
+10. Functions
+
+## Layout Of Functions
+
+1. constructor
+2. receive function (if exists)
+3. fallback function (if exists)
+4. external
+5. public
+6. internal
+7. private
+8. internal & private view & pure functions
+9. external & public view & pure functions
+
 ## ⚙️ Cara Menjalankan (Bagi yang Ingin Cek)
 
 1. Build proyek:
