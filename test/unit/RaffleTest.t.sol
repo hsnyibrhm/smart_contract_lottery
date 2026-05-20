@@ -20,10 +20,71 @@ contract RaffleTest is Test {
     address public PLAYER = makeAddr("player");
     uint256 public constant STARTING_PLAYER_BALANCE = 10 ether;
 
+    event PlayerEntered(address indexed player);
+    event WinnerPicked(address indexed winner);
+}
+
+// Testable wrapper to expose internal fulfillRandomWords for unit testing
+contract TestableRaffle is Raffle {
+    constructor(
+        uint256 entranceFee,
+        uint256 interval,
+        address vrfCoordinator,
+        bytes32 gasLane,
+        uint64 subscriptionId,
+        uint32 callbackGasLimit
+    )
+        Raffle(
+            entranceFee,
+            interval,
+            vrfCoordinator,
+            gasLane,
+            subscriptionId,
+            callbackGasLimit
+        )
+    {}
+
+    function callFulfill(
+        uint256 requestId,
+        uint256[] calldata randomWords
+    ) external {
+        fulfillRandomWords(requestId, randomWords);
+    }
+}
+
+contract RaffleTestable is Test {
+    Raffle public raffle;
+    HelperConfig public helperConfig;
+
+    uint256 entranceFee;
+    uint256 interval;
+    uint64 subscriptionId;
+    uint32 callbackGasLimit;
+    bytes32 gasLane;
+    address vrfCoordinator;
+
+    address public PLAYER = makeAddr("player");
+    uint256 public constant STARTING_PLAYER_BALANCE = 10 ether;
+
+    event PlayerEntered(address indexed player);
+    event WinnerPicked(address indexed winner);
+
     function setUp() external {
-        DeployRaffle deployer = new DeployRaffle();
-        (raffle, helperConfig) = deployer.DeployContract();
+        helperConfig = new HelperConfig();
         HelperConfig.NetworkConfig memory config = helperConfig.getConfig();
+
+        // deploy a testable raffle so we can call fulfillRandomWords directly
+        TestableRaffle testable = new TestableRaffle(
+            config.entranceFee,
+            config.interval,
+            config.vrfCoordinator,
+            config.gasLane,
+            config.subscriptionId,
+            config.callbackGasLimit
+        );
+
+        raffle = Raffle(address(testable));
+
         entranceFee = config.entranceFee;
         interval = config.interval;
         vrfCoordinator = config.vrfCoordinator;
@@ -49,5 +110,30 @@ contract RaffleTest is Test {
         raffle.enterRaffle{value: entranceFee}();
         address playerRecorded = raffle.getPlayer(0);
         assert(playerRecorded == PLAYER);
+    }
+
+    function testEmitsPlayerEnteredEvent() public {
+        vm.prank(PLAYER);
+        vm.expectEmit(true, false, false, false, address(raffle));
+        emit PlayerEntered(PLAYER);
+        raffle.enterRaffle{value: entranceFee}();
+    }
+
+    function testEmitsWinnerPickedEvent() public {
+        address player2 = makeAddr("player2");
+        vm.deal(player2, STARTING_PLAYER_BALANCE);
+
+        // PLAYER enters first, then player2
+        vm.prank(PLAYER);
+        raffle.enterRaffle{value: entranceFee}();
+        vm.prank(player2);
+        raffle.enterRaffle{value: entranceFee}();
+
+        vm.expectEmit(true, false, false, false, address(raffle));
+        emit WinnerPicked(PLAYER);
+
+        uint256[] memory randomWords = new uint256[](1);
+        randomWords[0] = 0; // picks index 0 -> PLAYER
+        TestableRaffle(address(raffle)).callFulfill(0, randomWords);
     }
 }
