@@ -136,4 +136,23 @@ contract RaffleTestable is Test {
         randomWords[0] = 0; // picks index 0 -> PLAYER
         TestableRaffle(address(raffle)).callFulfill(0, randomWords);
     }
+
+    function testDontAllowPlayersToEnterWhenCalculating() public {
+        //Arrange - enter the raffle
+        vm.prank(PLAYER);
+        raffle.enterRaffle{value: entranceFee}();
+
+        // move time forward so upkeep is needed
+        vm.warp(block.timestamp + interval + 1);
+        vm.roll(block.number + 1);
+
+        // perform upkeep to change state to calculating
+        raffle.performUpkeep("");
+
+        //Act $ Assert - try to enter raffle and expect revert
+        vm.expectRevert(Raffle.RaffleNotOpen.selector);
+
+        vm.prank(PLAYER);
+        raffle.enterRaffle{value: entranceFee}();
+    }
 }
