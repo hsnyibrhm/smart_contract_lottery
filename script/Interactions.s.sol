@@ -3,10 +3,11 @@ pragma solidity 0.8.19;
 
 import {Script} from "forge-std/Script.sol";
 import {Raffle} from "../src/Raffle.sol";
-import {HelperConfig} from "./HelperConfig.s.sol";
+import {HelperConfig, CodeConstants} from "./HelperConfig.s.sol";
 import {console} from "forge-std/console.sol";
 import {VRFV2PlusClient} from "@chainlink/contracts/src/v0.8/vrf/dev/libraries/VRFV2PlusClient.sol";
 import {VRFCoordinatorV2Mock} from "@chainlink/contracts/src/v0.8/vrf/mocks/VRFCoordinatorV2Mock.sol";
+import {LinkToken} from "../test/mocks/LinkToken.sol";
 
 contract CreateSubscription is Script {
     function createSubscriptionUsingConfig() public returns (uint64, address) {
@@ -35,5 +36,52 @@ contract CreateSubscription is Script {
             "update the subscription ID in your contract in helperconfig.s.sol..."
         );
         return (subId, vrfCoordinator);
+    }
+}
+
+contract FundSubscription is Script, CodeConstants {
+    uint96 public constant FUND_AMOUNT = 3 ether;
+
+    function fundSubscriptionUsingConfig() public {
+        HelperConfig helperConfig = new HelperConfig();
+        address vrfCoordinator = helperConfig.getConfig().vrfCoordinator;
+        uint64 subscriptionId = helperConfig.getConfig().subscriptionId;
+        address linkToken = helperConfig.getConfig().link;
+        fundSubscription(vrfCoordinator, subscriptionId, linkToken);
+    }
+
+    function fundSubscription(
+        address vrfCoordinator,
+        uint64 subscriptionId,
+        address linkToken
+    ) public {
+        // fund subscription
+        console.log("Funding subscription...", subscriptionId);
+        console.log("Using VRF Coordinator at:", vrfCoordinator);
+        // console.log("Using LINK token at:", linkToken);
+        console.log("On chainid:", block.chainid);
+
+        if (block.chainid == LOCAL_CHAINID) {
+            vm.startBroadcast();
+            VRFCoordinatorV2Mock(vrfCoordinator).fundSubscription(
+                subscriptionId,
+                FUND_AMOUNT
+            );
+            vm.stopBroadcast();
+        } else {
+            // For testnet/mainnet, we need to use the LINK token to fund the subscription
+            console.log("Funding subscription with LINK token...");
+            vm.startBroadcast();
+            LinkToken(linkToken).transferAndCall(
+                vrfCoordinator,
+                FUND_AMOUNT,
+                abi.encode(subscriptionId)
+            );
+            vm.stopBroadcast();
+        }
+    }
+
+    function run() public {
+        fundSubscriptionUsingConfig();
     }
 }
