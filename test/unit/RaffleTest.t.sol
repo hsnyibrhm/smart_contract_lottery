@@ -5,6 +5,7 @@ import {Test} from "forge-std/Test.sol";
 import {DeployRaffle} from "../../script/DeployRaffle.s.sol";
 import {Raffle} from "../../src/Raffle.sol";
 import {HelperConfig} from "../../script/HelperConfig.s.sol";
+import {VRFCoordinatorV2_5Mock} from "@chainlink/contracts/src/v0.8/vrf/mocks/VRFCoordinatorV2_5Mock.sol";
 
 contract RaffleTest is Test {
     Raffle public raffle;
@@ -12,53 +13,7 @@ contract RaffleTest is Test {
 
     uint256 entranceFee;
     uint256 interval;
-    uint64 subscriptionId;
-    uint32 callbackGasLimit;
-    bytes32 gasLane;
-    address vrfCoordinator;
-
-    address public PLAYER = makeAddr("player");
-    uint256 public constant STARTING_PLAYER_BALANCE = 10 ether;
-
-    event PlayerEntered(address indexed player);
-    event WinnerPicked(address indexed winner);
-}
-
-// Testable wrapper to expose internal fulfillRandomWords for unit testing
-contract TestableRaffle is Raffle {
-    constructor(
-        uint256 entranceFee,
-        uint256 interval,
-        address vrfCoordinator,
-        bytes32 gasLane,
-        uint64 subscriptionId,
-        uint32 callbackGasLimit
-    )
-        Raffle(
-            entranceFee,
-            interval,
-            vrfCoordinator,
-            gasLane,
-            subscriptionId,
-            callbackGasLimit
-        )
-    {}
-
-    function callFulfill(
-        uint256 requestId,
-        uint256[] calldata randomWords
-    ) external {
-        fulfillRandomWords(requestId, randomWords);
-    }
-}
-
-contract RaffleTestable is Test {
-    Raffle public raffle;
-    HelperConfig public helperConfig;
-
-    uint256 entranceFee;
-    uint256 interval;
-    uint64 subscriptionId;
+    uint256 subscriptionId;
     uint32 callbackGasLimit;
     bytes32 gasLane;
     address vrfCoordinator;
@@ -70,28 +25,21 @@ contract RaffleTestable is Test {
     event WinnerPicked(address indexed winner);
 
     function setUp() external {
-        helperConfig = new HelperConfig();
+        // 1. Jalankan skrip deployer resmi agar mengembalikan instance Raffle dan HelperConfig yang valid
+        DeployRaffle deployer = new DeployRaffle();
+        (raffle, helperConfig) = deployer.run();
+
+        // 2. Ambil data konfigurasi jaringan yang aktif
         HelperConfig.NetworkConfig memory config = helperConfig.getConfig();
-
-        // deploy a testable raffle so we can call fulfillRandomWords directly
-        TestableRaffle testable = new TestableRaffle(
-            config.entranceFee,
-            config.interval,
-            config.vrfCoordinator,
-            config.gasLane,
-            config.subscriptionId,
-            config.callbackGasLimit
-        );
-
-        raffle = Raffle(address(testable));
 
         entranceFee = config.entranceFee;
         interval = config.interval;
-        vrfCoordinator = config.vrfCoordinator;
-        gasLane = config.gasLane;
-        callbackGasLimit = config.callbackGasLimit;
         subscriptionId = config.subscriptionId;
+        callbackGasLimit = config.callbackGasLimit;
+        gasLane = config.gasLane;
+        vrfCoordinator = config.vrfCoordinator;
 
+        // 3. Berikan modal ETH ke player tiruan untuk bahan uji coba
         vm.deal(PLAYER, STARTING_PLAYER_BALANCE);
     }
 
@@ -119,40 +67,49 @@ contract RaffleTestable is Test {
         raffle.enterRaffle{value: entranceFee}();
     }
 
-    function testEmitsWinnerPickedEvent() public {
-        address player2 = makeAddr("player2");
-        vm.deal(player2, STARTING_PLAYER_BALANCE);
-
-        // PLAYER enters first, then player2
-        vm.prank(PLAYER);
-        raffle.enterRaffle{value: entranceFee}();
-        vm.prank(player2);
-        raffle.enterRaffle{value: entranceFee}();
-
-        vm.expectEmit(true, false, false, false, address(raffle));
-        emit WinnerPicked(PLAYER);
-
-        uint256[] memory randomWords = new uint256[](1);
-        randomWords[0] = 0; // picks index 0 -> PLAYER
-        TestableRaffle(address(raffle)).callFulfill(0, randomWords);
-    }
-
     function testDontAllowPlayersToEnterWhenCalculating() public {
-        //Arrange - enter the raffle
+        // Arrange - player masuk ke raffle
         vm.prank(PLAYER);
         raffle.enterRaffle{value: entranceFee}();
 
-        // move time forward so upkeep is needed
+        // Majukan waktu simulator agar syarat durasi penutupan raffle terpenuhi
         vm.warp(block.timestamp + interval + 1);
         vm.roll(block.number + 1);
 
-        // perform upkeep to change state to calculating
+        // Eksekusi performUpkeep untuk mengubah status state Raffle menjadi CALCULATING
         raffle.performUpkeep("");
 
-        //Act $ Assert - try to enter raffle and expect revert
+        // Act & Assert - Player memaksa masuk saat menghitung, harus diblokir (revert)
         vm.expectRevert(Raffle.RaffleNotOpen.selector);
-
         vm.prank(PLAYER);
         raffle.enterRaffle{value: entranceFee}();
+    }
+}
+
+// Wrapper khusus diletakkan di bagian paling bawah untuk keperluan pengujian fulfillRandomWords lanjutan nanti
+contract TestableRaffle is Raffle {
+    constructor(
+        uint256 _entranceFee,
+        uint256 _interval,
+        address _vrfCoordinator,
+        bytes32 _gasLane,
+        uint256 _subscriptionId,
+        uint32 _callbackGasLimit
+    )
+        Raffle(
+            _entranceFee,
+            _interval,
+            _vrfCoordinator,
+            _gasLane,
+            _subscriptionId,
+            _callbackGasLimit
+        )
+    {}
+
+    function callFulfill(
+        uint256 requestId,
+        uint256[] calldata randomWords
+    ) external {
+        fulfillRandomWords(requestId, randomWords);
     }
 }

@@ -56,7 +56,7 @@ contract Raffle is VRFConsumerBaseV2Plus {
     uint32 private constant NUMWORDS = 1;
     uint256 private immutable i_entranceFee;
     uint32 private immutable i_callbackGasLimit;
-    uint64 private immutable i_subscriptionId;
+    uint256 private immutable i_subscriptionId;
     /**
      * @dev durasi lottery dalam detik, misalnya 1 hari = 86400 detik
      */
@@ -76,7 +76,7 @@ contract Raffle is VRFConsumerBaseV2Plus {
         uint256 interval,
         address vrfCoordinator,
         bytes32 gasLane,
-        uint64 subscriptionId,
+        uint256 subscriptionId,
         uint32 callbackGasLimit
     ) VRFConsumerBaseV2Plus(vrfCoordinator) {
         i_entranceFee = entranceFee;
@@ -110,14 +110,14 @@ contract Raffle is VRFConsumerBaseV2Plus {
     }
 
     /**
-    @dev fungsi ini akan dipanggil oleh Chainlink Keeper untuk memeriksa apakah kondisi untuk memulai proses pemilihan pemenang sudah terpenuhi, 
-    yaitu apakah interval waktu sudah terpenuhi dan apakah ada pemain yang masuk ke dalam raffle. 
-    Jika kondisi terpenuhi, maka fungsi ini akan mengembalikan nilai true untuk upkeepNeeded, 
-    yang akan memicu pemanggilan fungsi pickWinner oleh Chainlink Keeper.
-    @param - ignored
-    @return upkeepNeeded - boolean yang menunjukkan apakah kondisi untuk memulai proses pemilihan pemenang sudah terpenuhi
-    @return - bytes memory yang tidak digunakan dalam fungsi ini, tetapi diperlukan untuk memenuhi signature dari
-    */
+     * @dev fungsi ini akan dipanggil oleh Chainlink Keeper untuk memeriksa apakah kondisi untuk memulai proses pemilihan pemenang sudah terpenuhi,
+     * yaitu apakah interval waktu sudah terpenuhi dan apakah ada pemain yang masuk ke dalam raffle.
+     * Jika kondisi terpenuhi, maka fungsi ini akan mengembalikan nilai true untuk upkeepNeeded,
+     * yang akan memicu pemanggilan fungsi pickWinner oleh Chainlink Keeper.
+     * @param - ignored
+     * @return upkeepNeeded - boolean yang menunjukkan apakah kondisi untuk memulai proses pemilihan pemenang sudah terpenuhi
+     * @return - bytes memory yang tidak digunakan dalam fungsi ini, tetapi diperlukan untuk memenuhi signature dari
+     */
     function checkUpkeep(
         bytes memory /* checkData */
     ) public view returns (bool upkeepNeeded, bytes memory) {
@@ -159,7 +159,8 @@ contract Raffle is VRFConsumerBaseV2Plus {
     }
 
     function fulfillRandomWords(
-        uint256 /*requestId*/,
+        uint256,
+        /*requestId*/
         uint256[] calldata randomWords
     ) internal override {
         //efek internal contract state, jadi tidak perlu validasi requestId karena hanya bisa dipanggil oleh VRF Coordinator

@@ -2,8 +2,8 @@
 pragma solidity 0.8.19;
 
 import {Script} from "forge-std/Script.sol";
-import {VRFCoordinatorV2Mock} from "@chainlink/contracts/src/v0.8/vrf/mocks/VRFCoordinatorV2Mock.sol";
 import {LinkToken} from "../test/mocks/LinkToken.sol";
+import {VRFCoordinatorV2_5Mock} from "@chainlink/contracts/src/v0.8/vrf/mocks/VRFCoordinatorV2_5Mock.sol";
 
 abstract contract CodeConstants {
     /* VRF Mock values */
@@ -22,7 +22,7 @@ contract HelperConfig is CodeConstants, Script {
     struct NetworkConfig {
         uint256 entranceFee;
         uint256 interval;
-        uint64 subscriptionId;
+        uint256 subscriptionId;
         uint32 callbackGasLimit;
         bytes32 gasLane;
         address vrfCoordinator;
@@ -87,10 +87,11 @@ contract HelperConfig is CodeConstants, Script {
         }
 
         vm.startBroadcast();
-        VRFCoordinatorV2Mock vrfCoordinatorV2Mock = new VRFCoordinatorV2Mock(
-            MOCK_BASE_FEE,
-            MOCK_GAS_PRICE_LINK
-        );
+        VRFCoordinatorV2_5Mock vrfCoordinatorV2_5Mock = new VRFCoordinatorV2_5Mock(
+                MOCK_BASE_FEE,
+                MOCK_GAS_PRICE_LINK,
+                MOCK_WEI_PER_UNIT_LINK
+            );
         LinkToken linkToken = new LinkToken();
         vm.stopBroadcast();
 
@@ -100,7 +101,7 @@ contract HelperConfig is CodeConstants, Script {
             gasLane: bytes32(
                 0x1770bdc7eec7771f7ba4ffd640f34260d7f095b79c92d34a5b2551d6f6cfd2be
             ), // TODO: update with actual gas lane
-            vrfCoordinator: address(vrfCoordinatorV2Mock), // TODO: update with actual VRF coordinator address
+            vrfCoordinator: address(vrfCoordinatorV2_5Mock), // TODO: update with actual VRF coordinator address
             callbackGasLimit: 200000,
             subscriptionId: 0, // TODO: update with actual subscription id in chainlink subscription management UI
             link: address(linkToken)
