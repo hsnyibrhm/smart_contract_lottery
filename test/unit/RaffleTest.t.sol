@@ -116,6 +116,32 @@ contract RaffleTest is Test {
     /// to do list
     // test checkupkeep returns false if enough time has passed
     // test checkupkeep returns true when parameters are good
+
+    function testPerformUpkeepCanOnlyRunIfCheckUpkeepIsTrue() public {
+        // Arrange - player masuk ke raffle
+        vm.prank(PLAYER);
+        raffle.enterRaffle{value: entranceFee}();
+
+        // Majukan waktu simulator agar syarat durasi penutupan raffle terpenuhi
+        vm.warp(block.timestamp + interval + 1);
+        vm.roll(block.number + 1);
+
+        // Act & Assert - checkUpkeep harus mengembalikan false karena status bukan OPEN
+        raffle.performUpkeep("");
+    }
+
+    function testPerformUpkeepRevertsIfCheckUpkeepIsFalse() public {
+        // Act & Assert - checkUpkeep harus mengembalikan false karena tidak ada pemain yang masuk
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                Raffle.Raffle_UpkeepNotNeeded.selector,
+                address(raffle).balance,
+                0,
+                uint256(Raffle.RaffleState.OPEN)
+            )
+        );
+        raffle.performUpkeep("");
+    }
 }
 
 /*////////////////////////////////////////////////////////////////////////////////////////////////////////////*/
