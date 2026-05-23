@@ -84,9 +84,40 @@ contract RaffleTest is Test {
         vm.prank(PLAYER);
         raffle.enterRaffle{value: entranceFee}();
     }
+
+    /*////////////////////////////////////////////////////////////////*/
+
+    function testCheckUpKeepReturnsFalseIfHasNoBalance() public {
+        //Arrange
+        vm.warp(block.timestamp + interval + 1);
+        vm.roll(block.number + 1);
+        //Act
+        (bool upkeepNeeded, ) = raffle.checkUpkeep("");
+        //Assert
+        assert(!upkeepNeeded);
+    }
+
+    function testCheckUpKeepReturnsFalseIfRaffleNotOpen() public {
+        //Arrange
+        vm.prank(PLAYER);
+        raffle.enterRaffle{value: entranceFee}();
+
+        vm.warp(block.timestamp + interval + 1);
+        vm.roll(block.number + 1);
+
+        raffle.performUpkeep("");
+
+        //Act
+        (bool upkeepNeeded, ) = raffle.checkUpkeep("");
+        //Assert
+        assert(!upkeepNeeded);
+    }
 }
 
+/*////////////////////////////////////////////////////////////////////////////////////////////////////////////*/
 // Wrapper khusus diletakkan di bagian paling bawah untuk keperluan pengujian fulfillRandomWords lanjutan nanti
+/*////////////////////////////////////////////////////////////////////////////////////////////////////////////*/
+
 contract TestableRaffle is Raffle {
     constructor(
         uint256 _entranceFee,
