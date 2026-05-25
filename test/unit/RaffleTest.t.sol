@@ -144,14 +144,34 @@ contract RaffleTest is Test {
         raffle.performUpkeep("");
     }
 
-    function testPerformUpkeepChangesRaffleStateAndEmitsRequestId() public {
-        // Arrange - player masuk ke raffle
+    // ==========================================
+    // PENJELASAN MODIFIER:
+    // 1. Berfungsi sebagai awalan untuk menyaring akses ke sebuah fungsi.
+    // 2. Digunakan untuk validasi kondisi tertentu (misal: mengecek kecukupan dana, status kontrak, atau hak akses penembak fungsi).
+    // 3. Menghindari duplikasi kode (DRY - Don't Repeat Yourself) agar fungsi-fungsi tidak perlu menulis ulang logika 'require' atau 'if' yang sama.
+    // 4. Simbol `_;` (merge wildcard) adalah instruksi bagi Solidity untuk melanjutkan eksekusi ke baris kode utama di dalam fungsi setelah syarat modifier lolos.
+    // ==========================================
+    modifier enteredRaffle() {
         vm.prank(PLAYER);
         raffle.enterRaffle{value: entranceFee}();
 
         // Majukan waktu simulator agar syarat durasi penutupan raffle terpenuhi
         vm.warp(block.timestamp + interval + 1);
         vm.roll(block.number + 1);
+        _;
+    }
+
+    function testPerformUpkeepChangesRaffleStateAndEmitsRequestId()
+        public
+        enteredRaffle
+    {
+        // // Arrange - player masuk ke raffle
+        // vm.prank(PLAYER);
+        // raffle.enterRaffle{value: entranceFee}();
+
+        // // Majukan waktu simulator agar syarat durasi penutupan raffle terpenuhi
+        // vm.warp(block.timestamp + interval + 1);
+        // vm.roll(block.number + 1);
 
         // Act & Assert - checkUpkeep harus mengembalikan false karena status bukan OPEN
         vm.recordLogs();
