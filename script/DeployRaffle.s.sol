@@ -24,16 +24,11 @@ contract DeployRaffle is Script {
 
         if (config.subscriptionId == 0) {
             CreateSubscription createsub = new CreateSubscription();
-            (config.subscriptionId, config.vrfCoordinator) = createsub
-                .createSubscription(config.vrfCoordinator);
+            (config.subscriptionId, config.vrfCoordinator) = createsub.createSubscription(config.vrfCoordinator);
 
             // add consumer
             FundSubscription fundsub = new FundSubscription();
-            fundsub.fundSubscription(
-                config.vrfCoordinator,
-                config.subscriptionId,
-                config.link
-            );
+            fundsub.fundSubscription(config.vrfCoordinator, config.subscriptionId, config.link);
         }
         vm.startBroadcast();
         Raffle raffle = new Raffle(
@@ -48,11 +43,7 @@ contract DeployRaffle is Script {
 
         // Tidak perlu strart broadcast karena sudah ada di addcunsumer
         AddConsumer addconsumer = new AddConsumer();
-        addconsumer.addConsumer(
-            address(raffle),
-            config.vrfCoordinator,
-            config.subscriptionId
-        );
+        addconsumer.addConsumer(address(raffle), config.vrfCoordinator, config.subscriptionId);
 
         return (raffle, helperConfig);
     }

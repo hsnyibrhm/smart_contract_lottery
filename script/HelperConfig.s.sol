@@ -46,9 +46,7 @@ contract HelperConfig is CodeConstants, Script {
         //networkConfigs[LOCAL_CHAINID] = getLocalEthConfig();
     }
 
-    function getConfigByChainId(
-        uint256 chainid
-    ) public returns (NetworkConfig memory) {
+    function getConfigByChainId(uint256 chainid) public returns (NetworkConfig memory) {
         if (networkConfigs[chainid].vrfCoordinator != address(0)) {
             NetworkConfig memory config = networkConfigs[chainid];
             return config;
@@ -64,20 +62,15 @@ contract HelperConfig is CodeConstants, Script {
     }
 
     function getSepoliaEthConfig() public pure returns (NetworkConfig memory) {
-        return
-            NetworkConfig({
-                entranceFee: 0.01 ether,
-                interval: 30,
-                gasLane: bytes32(
-                    0x1770bdc7eec7771f7ba4ffd640f34260d7f095b79c92d34a5b2551d6f6cfd2be
-                ), // TODO: update with actual gas lane
-                vrfCoordinator: address(
-                    0x5CE8D5A2BC84beb22a398CCA51996F7930313D61
-                ), // TODO: update with actual VRF coordinator address
-                callbackGasLimit: 200000,
-                subscriptionId: 0, // TODO: update with actual subscription id
-                link: 0x779877A7B0D9E8603169DdbD7836e478b4624789
-            });
+        return NetworkConfig({
+            entranceFee: 0.01 ether,
+            interval: 30,
+            gasLane: bytes32(0x1770bdc7eec7771f7ba4ffd640f34260d7f095b79c92d34a5b2551d6f6cfd2be), // TODO: update with actual gas lane
+            vrfCoordinator: address(0x5CE8D5A2BC84beb22a398CCA51996F7930313D61), // TODO: update with actual VRF coordinator address
+            callbackGasLimit: 200000,
+            subscriptionId: 0, // TODO: update with actual subscription id
+            link: 0x779877A7B0D9E8603169DdbD7836e478b4624789
+        });
     }
 
     function getOrCreateAnvilEthConfig() public returns (NetworkConfig memory) {
@@ -87,20 +80,15 @@ contract HelperConfig is CodeConstants, Script {
         }
 
         vm.startBroadcast();
-        VRFCoordinatorV2_5Mock vrfCoordinatorV2_5Mock = new VRFCoordinatorV2_5Mock(
-                MOCK_BASE_FEE,
-                MOCK_GAS_PRICE_LINK,
-                MOCK_WEI_PER_UNIT_LINK
-            );
+        VRFCoordinatorV2_5Mock vrfCoordinatorV2_5Mock =
+            new VRFCoordinatorV2_5Mock(MOCK_BASE_FEE, MOCK_GAS_PRICE_LINK, MOCK_WEI_PER_UNIT_LINK);
         LinkToken linkToken = new LinkToken();
         vm.stopBroadcast();
 
         localNetworkConfig = NetworkConfig({
             entranceFee: 0.01 ether,
             interval: 30,
-            gasLane: bytes32(
-                0x1770bdc7eec7771f7ba4ffd640f34260d7f095b79c92d34a5b2551d6f6cfd2be
-            ), // TODO: update with actual gas lane
+            gasLane: bytes32(0x1770bdc7eec7771f7ba4ffd640f34260d7f095b79c92d34a5b2551d6f6cfd2be), // TODO: update with actual gas lane
             vrfCoordinator: address(vrfCoordinatorV2_5Mock), // TODO: update with actual VRF coordinator address
             callbackGasLimit: 200000,
             subscriptionId: 0, // TODO: update with actual subscription id in chainlink subscription management UI
