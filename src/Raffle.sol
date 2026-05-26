@@ -39,7 +39,11 @@ contract Raffle is VRFConsumerBaseV2Plus {
     error NOtEnoughETHToEnterRaffle();
     error TransferFailed();
     error RaffleNotOpen();
-    error Raffle_UpkeepNotNeeded(uint256 balance, uint256 playerslength, uint256 raffleState);
+    error Raffle_UpkeepNotNeeded(
+        uint256 balance,
+        uint256 playerslength,
+        uint256 raffleState
+    );
 
     /* Type declarations */
     enum RaffleState {
@@ -117,11 +121,7 @@ contract Raffle is VRFConsumerBaseV2Plus {
      */
     function checkUpkeep(
         bytes memory /* checkData */
-    )
-        public
-        view
-        returns (bool upkeepNeeded, bytes memory)
-    {
+    ) public view returns (bool upkeepNeeded, bytes memory) {
         bool timePassed = (block.timestamp - s_lastTimeStamp) >= i_interval;
         bool isOpen = s_raffleState == RaffleState.OPEN;
         bool hasbalance = address(this).balance > 0;
@@ -132,28 +132,29 @@ contract Raffle is VRFConsumerBaseV2Plus {
     }
 
     /*otomatis akan dipanggil oleh Chainlink Keeper setelah interval waktu terpenuhi, untuk memulai proses pemilihan pemenang*/
-    function performUpkeep(
-        bytes calldata /* performData */
-    )
-        external
-    {
-        (bool upkeepNeeded,) = checkUpkeep("");
+    function performUpkeep(bytes calldata /* performData */) external {
+        (bool upkeepNeeded, ) = checkUpkeep("");
         if (!upkeepNeeded) {
-            revert Raffle_UpkeepNotNeeded(address(this).balance, s_players.length, uint256(s_raffleState));
+            revert Raffle_UpkeepNotNeeded(
+                address(this).balance,
+                s_players.length,
+                uint256(s_raffleState)
+            );
         }
         s_raffleState = RaffleState.CALCULATING;
 
-        VRFV2PlusClient.RandomWordsRequest memory request = VRFV2PlusClient.RandomWordsRequest({
-            keyHash: i_keyHash,
-            subId: i_subscriptionId,
-            requestConfirmations: REQUEST_CONFIRMATION,
-            callbackGasLimit: i_callbackGasLimit,
-            numWords: NUMWORDS,
-            extraArgs: VRFV2PlusClient._argsToBytes(
-                // Set nativePayment to true to pay for VRF requests with Sepolia ETH instead of LINK
-                VRFV2PlusClient.ExtraArgsV1({nativePayment: false})
-            )
-        });
+        VRFV2PlusClient.RandomWordsRequest memory request = VRFV2PlusClient
+            .RandomWordsRequest({
+                keyHash: i_keyHash,
+                subId: i_subscriptionId,
+                requestConfirmations: REQUEST_CONFIRMATION,
+                callbackGasLimit: i_callbackGasLimit,
+                numWords: NUMWORDS,
+                extraArgs: VRFV2PlusClient._argsToBytes(
+                    // Set nativePayment to true to pay for VRF requests with Sepolia ETH instead of LINK
+                    VRFV2PlusClient.ExtraArgsV1({nativePayment: false})
+                )
+            });
 
         uint256 requestId = s_vrfCoordinator.requestRandomWords(request);
         emit RequestedRaffleWinner(requestId);
@@ -163,10 +164,7 @@ contract Raffle is VRFConsumerBaseV2Plus {
         uint256,
         /*requestId*/
         uint256[] calldata randomWords
-    )
-        internal
-        override
-    {
+    ) internal override {
         //efek internal contract state, jadi tidak perlu validasi requestId karena hanya bisa dipanggil oleh VRF Coordinator
         uint256 indexOfWinner = randomWords[0] % s_players.length;
         address payable recentWinner = s_players[indexOfWinner];
@@ -179,7 +177,7 @@ contract Raffle is VRFConsumerBaseV2Plus {
         emit WinnerPicked(s_recentWinner);
 
         /*unteraksu (eksternal contract state)*/
-        (bool success,) = recentWinner.call{value: address(this).balance}("");
+        (bool success, ) = recentWinner.call{value: address(this).balance}("");
         if (!success) {
             revert TransferFailed();
         }
@@ -196,5 +194,13 @@ contract Raffle is VRFConsumerBaseV2Plus {
 
     function getPlayer(uint256 indexOfPlayer) external view returns (address) {
         return s_players[indexOfPlayer];
+    }
+
+    function getLastTimeStamp() external view returns (uint256) {
+        return s_lastTimeStamp;
+    }
+
+    function getRecentWinner() external view returns (address) {
+        return s_recentWinner;
     }
 }
