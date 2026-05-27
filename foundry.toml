@@ -15,5 +15,8 @@ fs_permissions = [
 [fuzz]
 runs = 256
 
+# [rpc_endpoints]
+# sepolia = "https://eth-sepolia.g.alchemy.com/v2/HS5F308oatduaLI_WvBDj"
+
 
 # See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options

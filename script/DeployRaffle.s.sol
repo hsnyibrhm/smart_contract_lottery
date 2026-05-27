@@ -21,16 +21,38 @@ contract DeployRaffle is Script {
         //testnet -> get testnet config
         //sepolia -> get sepoli config
         HelperConfig.NetworkConfig memory config = helperConfig.getConfig();
-
+        // If subscriptionId is zero or invalid for this coordinator, create and fund a new one
+        bool needNewSub = false;
         if (config.subscriptionId == 0) {
-            CreateSubscription createsub = new CreateSubscription();
-            (config.subscriptionId, config.vrfCoordinator) = createsub.createSubscription(config.vrfCoordinator);
-
-            // add consumer
-            FundSubscription fundsub = new FundSubscription();
-            fundsub.fundSubscription(config.vrfCoordinator, config.subscriptionId, config.link);
+            needNewSub = true;
+        } else {
+            // try to read the subscription; if it reverts it's invalid
+            try
+                VRFCoordinatorV2_5Mock(config.vrfCoordinator).getSubscription(
+                    config.subscriptionId
+                )
+            returns (uint96, uint96, uint64, address, address[] memory) {
+                // subscription exists
+            } catch {
+                needNewSub = true;
+            }
         }
-        vm.startBroadcast();
+
+        if (needNewSub) {
+            CreateSubscription createsub = new CreateSubscription();
+            (config.subscriptionId, config.vrfCoordinator) = createsub
+                .createSubscription(config.vrfCoordinator, config.account);
+
+            // fund subscription
+            FundSubscription fundsub = new FundSubscription();
+            fundsub.fundSubscription(
+                config.vrfCoordinator,
+                config.subscriptionId,
+                config.link,
+                config.account
+            );
+        }
+        vm.startBroadcast(config.account);
         Raffle raffle = new Raffle(
             config.entranceFee,
             config.interval,
@@ -43,7 +65,12 @@ contract DeployRaffle is Script {
 
         // Tidak perlu strart broadcast karena sudah ada di addcunsumer
         AddConsumer addconsumer = new AddConsumer();
-        addconsumer.addConsumer(address(raffle), config.vrfCoordinator, config.subscriptionId);
+        addconsumer.addConsumer(
+            address(raffle),
+            config.vrfCoordinator,
+            config.subscriptionId,
+            config.account
+        );
 
         return (raffle, helperConfig);
     }
