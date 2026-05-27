@@ -17,11 +17,11 @@ Proyek ini bertujuan untuk membangun sistem undian (lottery) yang sepenuhnya ter
 - [x] Inisialisasi Project & Struktur Folder.
 - [x] Inisialisasi Project & Struktur Folder.
 - [x] State Variables & Constructor (Entrance Fee).
-- [ ] Fungsi `enterRaffle` (Pendaftaran Peserta).
+- [x] Fungsi `enterRaffle` (Pendaftaran Peserta).
 - [x] Integrasi Chainlink VRF (Random Number).
-- [ ] Integrasi Chainlink Automation (Auto-pick winner).
-- [ ] Unit Testing & Integration Testing.
-- [ ] Deployment Script ke Testnet (Sepolia).
+- [x] Integrasi Chainlink Automation (Auto-pick winner).
+- [x] Unit Testing & Integration Testing.
+- [?] Deployment Script ke Testnet (Sepolia).
 
 ## 📂 Struktur Proyek
 
